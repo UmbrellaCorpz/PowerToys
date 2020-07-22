@@ -29,11 +29,11 @@ private:
     static Gdiplus::Image* camOnMicOffBitmap;
     static Gdiplus::Image* camOffMicOffBitmap;
 
-    static bool valueChanged;
+    static bool valueUpdated;
     static bool cameraMuted;
     static bool microphoneMuted;
 
-    static unsigned __int64 lastTimeCamOrMicMuted;
+    static unsigned __int64 lastTimeCamOrMicMuteStateChanged;
 
     static UINT_PTR nTimerId;
 };

@@ -6,7 +6,7 @@ Gdiplus::Image* Overlay::camOffMicOnBitmap = nullptr;
 Gdiplus::Image* Overlay::camOnMicOffBitmap = nullptr;
 Gdiplus::Image* Overlay::camOffMicOffBitmap = nullptr;
 
-bool Overlay::valueChanged = false;
+bool Overlay::valueUpdated = false;
 bool Overlay::cameraMuted = false;
 bool Overlay::microphoneMuted = false;
 
@@ -14,7 +14,7 @@ std::vector<HWND> Overlay::hwnds;
 
 UINT_PTR Overlay::nTimerId;
 
-unsigned __int64 Overlay::lastTimeCamOrMicMuted;
+unsigned __int64 Overlay::lastTimeCamOrMicMuteStateChanged;
 
 const int REFRESH_RATE = 100;
 const int OVERLAY_SHOW_TIME = 500;
@@ -81,7 +81,7 @@ LRESULT Overlay::WindowProcessMessages(HWND hwnd, UINT msg, WPARAM wparam, LPARA
         }
         else
         {
-            if (duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - lastTimeCamOrMicMuted > OVERLAY_SHOW_TIME || !valueChanged)
+            if (duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - lastTimeCamOrMicMuteStateChanged > OVERLAY_SHOW_TIME || !valueUpdated)
             {
                 ShowWindow(hwnd, SW_HIDE);
             }
@@ -106,7 +106,7 @@ LRESULT Overlay::WindowProcessMessages(HWND hwnd, UINT msg, WPARAM wparam, LPARA
 
 void Overlay::showOverlay(std::wstring position, std::wstring monitorString)
 {
-    valueChanged = false;
+    valueUpdated = false;
     for (auto& hwnd : hwnds)
     {
         PostMessage(hwnd, WM_CLOSE, 0, 0);
@@ -216,8 +216,8 @@ bool Overlay::getCameraMute()
 
 void Overlay::setCameraMute(bool mute)
 {
-    valueChanged = true;
-    lastTimeCamOrMicMuted = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    valueUpdated = true;
+    lastTimeCamOrMicMuteStateChanged = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     cameraMuted = mute;
 }
 
@@ -228,7 +228,11 @@ bool Overlay::getMicrophoneMute()
 
 void Overlay::setMicrophoneMute(bool mute)
 {
-    valueChanged = true;
-    lastTimeCamOrMicMuted = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (mute != microphoneMuted)
+    {
+        valueUpdated = true;
+        lastTimeCamOrMicMuteStateChanged = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
     microphoneMuted = mute;
 }
