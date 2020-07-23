@@ -89,27 +89,24 @@
             <TextBlock x:Uid="VideoConference_CameraOverlayImagePathHeader"
                        Margin="{StaticResource MediumTopMargin}"/>
 
-            <StackPanel Orientation="Horizontal" Padding="0" Spacing="4">
+            <StackPanel Orientation="Horizontal" Padding="0" Spacing="4" Margin="{StaticResource XXSmallTopMargin}">
                 <Button Width="320"
                         Height="32"
                         IsEnabled="{ Binding Mode=TwoWay, Path=IsEnabled}"
                         Content="{Binding Mode=TwoWay, Path=CameraImageOverlayPath}"
                         Command="{Binding Mode=OneWay, Path=SelectOverlayImage}"
-                        HorizontalAlignment="Left"
-                        Margin="{StaticResource MediumTopMargin}" />
-
+                        HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Left" />
                 <Button IsEnabled="{ Binding Mode=TwoWay, Path=IsEnabled}"
                         Height="32"
                         Content="Clear"
                         Command="{Binding Mode=OneWay, Path=ClearOverlayImage}"
-                        HorizontalAlignment="Left"
-                        Margin="{StaticResource MediumTopMargin}" />
+                        HorizontalAlignment="Left" />
             </StackPanel>
             
-
             <ComboBox x:Uid="VideoConference_OverlayPosition" 
                       MinWidth="240"
-                      Margin="{StaticResource SmallTopMargin}"
+                      Margin="{StaticResource MediumTopMargin}"
                       SelectedIndex="{ Binding Mode=TwoWay, Path=OverlayPostionIndex}"
                       IsEnabled="{ Binding Mode=TwoWay, Path=IsEnabled}">
                 <ComboBoxItem x:Uid="VideoConference_OverlayPosition_Center"/>
@@ -121,7 +118,7 @@
 
             <ComboBox x:Uid="VideoConference_OverlayMonitor" 
                       MinWidth="240"
-                      Margin="{StaticResource SmallTopMargin}"
+                      Margin="{StaticResource MediumTopMargin}"
                       SelectedIndex="{ Binding Mode=TwoWay, Path=OverlayMonitorIndex}"
                       IsEnabled="{ Binding Mode=TwoWay, Path=IsEnabled}">
                 <ComboBoxItem x:Uid="VideoConference_OverlayMonitor_Main"/>
