@@ -57,7 +57,7 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
         public StringProperty SelectedCamera { get; set; } = string.Empty;
 
         [JsonPropertyName("overlay_position")]
-        public StringProperty OverlayPosition { get; set; } = "Center";
+        public StringProperty OverlayPosition { get; set; } = "Top right corner";
 
         [JsonPropertyName("overlay_monitor")]
         public StringProperty OverlayMonitor { get; set; } = "Main monitor";

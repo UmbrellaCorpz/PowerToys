@@ -152,10 +152,10 @@ void Overlay::showOverlay(std::wstring position, std::wstring monitorString)
             positionX = monitorInfo.left() + BORDER_OFFSET;
             positionY = monitorInfo.top() + BORDER_OFFSET;
         }
-        else if (position == L"Top right corner")
+        else if (position == L"Center")
         {
-            positionX = monitorInfo.right() - overlayWidth - BORDER_OFFSET;
-            positionY = monitorInfo.top() + BORDER_OFFSET;
+            positionX = monitorInfo.middle().x - overlayWidth / 2;
+            positionY = monitorInfo.middle().y - overlayHeight / 2;
         }
         else if (position == L"Bottom left corner")
         {
@@ -167,10 +167,10 @@ void Overlay::showOverlay(std::wstring position, std::wstring monitorString)
             positionX = monitorInfo.right() - overlayWidth - BORDER_OFFSET;
             positionY = monitorInfo.bottom() - overlayHeight - BORDER_OFFSET;
         }
-        else //"Center" or non-present
+        else //"Top right corner" or non-present
         {
-            positionX = monitorInfo.middle().x - overlayWidth / 2;
-            positionY = monitorInfo.middle().y - overlayHeight / 2;
+            positionX = monitorInfo.right() - overlayWidth - BORDER_OFFSET;
+            positionY = monitorInfo.top() + BORDER_OFFSET;
         }
 
         HWND hwnd;
