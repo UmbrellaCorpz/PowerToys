@@ -155,12 +155,15 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         {
             break;
         }
-#if 0 // Debugging code to test yuy2 conversion
-    GUID subtype{};
-    next_type->GetGUID(MF_MT_SUBTYPE, &subtype);
-    if(memcmp(&subtype, &MFVideoFormat_YUY2, sizeof GUID))
-      continue;
-#endif
+
+        GUID subtype{};
+        nextType->GetGUID(MF_MT_SUBTYPE, &subtype);
+
+        LogToFile(std::string("Avialable format: ") + toMediaTypeString(subtype));
+
+        if (subtype != MFVideoFormat_RGB24)
+            continue;
+
         constexpr float minimalAcceptableFramerate = 15.f;
         // Skip low frame types
         if (typeFramerate(nextType) < minimalAcceptableFramerate)
@@ -588,10 +591,12 @@ bool SimpleMediaStream::SyncCurrentSettings()
     }
     if (!_settingsUpdateChannel)
     {
+        LogToFile("PowerToys not running");
         return webcamDisabled;
     }
 
     _settingsUpdateChannel->access([this, &webcamDisabled](auto settingsMemory) {
+
         auto settings = reinterpret_cast<CameraSettingsUpdateChannel*>(settingsMemory.data());
         bool cameraNameUpdated = false;
         std::wstring_view newCameraName;
@@ -613,27 +618,37 @@ bool SimpleMediaStream::SyncCurrentSettings()
 
         if (!settings->overlayImageSize.has_value())
         {
+            LogToFile("!settings->overlayImageSize.has_value()");
             return;
         }
 
         if (settings->newOverlayImagePosted || !_overlayImage || cameraUpdated)
         {
+            LogToFile("settings->newOverlayImagePosted || !_overlayImage || cameraUpdated");
             auto imageChannel =
                 SerializedSharedMemory::open(CameraOverlayImageChannel::endpoint(), *settings->overlayImageSize, true);
             if (!imageChannel)
             {
+                LogToFile("!imageChannel");
                 return;
             }
             imageChannel->access([this, settings](auto imageMemory) {
+                LogToFile("imageChannel->access([this, settings](auto imageMemory)");
                 ComPtr<IStream> imageStream = SHCreateMemStream(imageMemory.data(), static_cast<UINT>(imageMemory.size()));
                 if (!imageStream)
                 {
+                    LogToFile("!imageStream");
                     return;
                 }
                 if (auto imageSample = LoadImageAsSample(imageStream, _spMediaType.Get()))
                 {
+                    LogToFile("Successfully loaded image");
                     _overlayImage = imageSample;
                     settings->newOverlayImagePosted = false;
+                }
+                else
+                {
+                    LogToFile("Failed to load image");
                 }
             });
         }
