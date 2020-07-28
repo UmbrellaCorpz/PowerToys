@@ -133,11 +133,17 @@ HRESULT CopyAttribute(IMFAttributes* pSrc, IMFAttributes* pDest, const GUID& key
     return hr;
 }
 
+bool areSame(double lhs, double rhs)
+{
+    const double EPSILON = 0.00000001;
+    return fabs(lhs - rhs) < EPSILON;
+}
+
 ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
 {
     LogToFile(__FUNCTION__);
 
-    std::vector<ComPtr<IMFMediaType>> supportedMTypes;
+    std::vector<ComPtr<IMFMediaType>> supportedMediaTypes;
 
     auto typeFramerate = [](IMFMediaType* type) {
         UINT32 framerateNum = 0, framerateDenum = 1;
@@ -145,6 +151,27 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         const float framerate = static_cast<float>(framerateNum) / framerateDenum;
         return framerate;
     };
+
+    IMFMediaType* defaultMediaType = nullptr;
+    reader->GetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, &defaultMediaType);
+
+    double defaultAspectRatio = 0;
+
+    UINT32 defaultWidth = 0;
+    UINT32 defaultHeight = 0;
+    MFGetAttributeSize(defaultMediaType, MF_MT_FRAME_SIZE, &defaultWidth, &defaultHeight);
+
+    GUID defaultSubtype{};
+    defaultMediaType->GetGUID(MF_MT_SUBTYPE, &defaultSubtype);
+
+    LogToFile(std::string("Current  format: ") +
+              toMediaTypeString(defaultSubtype) +
+              std::string(", width= ") +
+              std::to_string(defaultWidth) +
+              std::string(", height= ") +
+              std::to_string(defaultHeight));
+
+    defaultAspectRatio = defaultWidth / defaultHeight;
 
     UINT64 maxResolution = 0;
     for (DWORD tyIdx = 0;; ++tyIdx)
@@ -156,13 +183,33 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
             break;
         }
 
+        UINT32 width = 0;
+        UINT32 height = 0;
+        MFGetAttributeSize(nextType, MF_MT_FRAME_SIZE, &width, &height);
+
+        double aspectRatio = width / height;
+
         GUID subtype{};
         nextType->GetGUID(MF_MT_SUBTYPE, &subtype);
 
-        LogToFile(std::string("Avialable format: ") + toMediaTypeString(subtype));
+        LogToFile(std::string("Available format: ") +
+                  toMediaTypeString(subtype) +
+                  std::string(", width= ") +
+                  std::to_string(width) +
+                  std::string(", height= ") +
+                  std::to_string(height) +
+                  std::string(", aspect ratio matching default = ") +
+                  std::to_string(areSame(aspectRatio, defaultAspectRatio)));
 
         if (subtype != MFVideoFormat_RGB24)
+        {
             continue;
+        }
+
+        if (!areSame(aspectRatio, defaultAspectRatio))
+        {
+            continue;
+        }
 
         constexpr float minimalAcceptableFramerate = 15.f;
         // Skip low frame types
@@ -171,12 +218,10 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
             continue;
         }
 
-        UINT32 w = 0, h = 0;
-        MFGetAttributeSize(nextType, MF_MT_FRAME_SIZE, &w, &h);
-        const UINT64 curResolutionMult = static_cast<UINT64>(w) * h;
+        const UINT64 curResolutionMult = static_cast<UINT64>(width) * height;
         if (curResolutionMult >= maxResolution)
         {
-            supportedMTypes.emplace_back(nextType);
+            supportedMediaTypes.emplace_back(nextType);
             maxResolution = curResolutionMult;
         }
 
@@ -187,20 +232,20 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
     }
 
     // Remove all types with non-optimal resolution
-    supportedMTypes.erase(std::remove_if(begin(supportedMTypes), end(supportedMTypes), [maxResolution](ComPtr<IMFMediaType>& ptr) {
-                              UINT32 w = 0, h = 0;
-                              MFGetAttributeSize(ptr.Get(), MF_MT_FRAME_SIZE, &w, &h);
-                              const UINT64 curResolutionMult = static_cast<UINT64>(w) * h;
-                              return curResolutionMult != maxResolution;
-                          }),
-                          end(supportedMTypes));
+    supportedMediaTypes.erase(std::remove_if(begin(supportedMediaTypes), end(supportedMediaTypes), [maxResolution](ComPtr<IMFMediaType>& ptr) {
+                                  UINT32 w = 0, h = 0;
+                                  MFGetAttributeSize(ptr.Get(), MF_MT_FRAME_SIZE, &w, &h);
+                                  const UINT64 curResolutionMult = static_cast<UINT64>(w) * h;
+                                  return curResolutionMult != maxResolution;
+                              }),
+                              end(supportedMediaTypes));
 
     // Desc-sort by frame_rate
-    std::sort(begin(supportedMTypes), end(supportedMTypes), [typeFramerate](ComPtr<IMFMediaType>& lhs, ComPtr<IMFMediaType>& rhs) {
+    std::sort(begin(supportedMediaTypes), end(supportedMediaTypes), [typeFramerate](ComPtr<IMFMediaType>& lhs, ComPtr<IMFMediaType>& rhs) {
         return typeFramerate(lhs.Get()) > typeFramerate(rhs.Get());
     });
 
-    return std::move(supportedMTypes[0]);
+    return std::move(supportedMediaTypes[0]);
 }
 
 HRESULT
@@ -596,7 +641,6 @@ bool SimpleMediaStream::SyncCurrentSettings()
     }
 
     _settingsUpdateChannel->access([this, &webcamDisabled](auto settingsMemory) {
-
         auto settings = reinterpret_cast<CameraSettingsUpdateChannel*>(settingsMemory.data());
         bool cameraNameUpdated = false;
         std::wstring_view newCameraName;
