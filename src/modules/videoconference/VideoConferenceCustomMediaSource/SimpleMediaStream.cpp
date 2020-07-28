@@ -136,7 +136,7 @@ HRESULT CopyAttribute(IMFAttributes* pSrc, IMFAttributes* pDest, const GUID& key
 bool areSame(double lhs, double rhs)
 {
     const double EPSILON = 0.00000001;
-    return fabs(lhs - rhs) < EPSILON;
+    return (fabs(lhs - rhs) < EPSILON);
 }
 
 ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
@@ -171,7 +171,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
               std::string(", height= ") +
               std::to_string(defaultHeight));
 
-    defaultAspectRatio = defaultWidth / defaultHeight;
+    defaultAspectRatio = (double)defaultWidth / (double)defaultHeight;
 
     UINT64 maxResolution = 0;
     for (DWORD tyIdx = 0;; ++tyIdx)
@@ -187,7 +187,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         UINT32 height = 0;
         MFGetAttributeSize(nextType, MF_MT_FRAME_SIZE, &width, &height);
 
-        double aspectRatio = width / height;
+        double aspectRatio = (double)width / (double)height;
 
         GUID subtype{};
         nextType->GetGUID(MF_MT_SUBTYPE, &subtype);
