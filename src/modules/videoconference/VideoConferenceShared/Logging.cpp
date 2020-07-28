@@ -2,15 +2,18 @@
 
 #include <iostream>
 #include <fstream>
-
+#include <mutex>
 #include <iomanip>
 #include <chrono>
 
-
 #include <mfapi.h>
+
+std::mutex logMutex;
 
 void LogToFile(std::string what)
 {
+    std::lock_guard lock{ logMutex };
+
     std::ofstream myfile;
 
     time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
