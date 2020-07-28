@@ -152,26 +152,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         return framerate;
     };
 
-    IMFMediaType* defaultMediaType = nullptr;
-    reader->GetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, &defaultMediaType);
-
-    double defaultAspectRatio = 0;
-
-    UINT32 defaultWidth = 0;
-    UINT32 defaultHeight = 0;
-    MFGetAttributeSize(defaultMediaType, MF_MT_FRAME_SIZE, &defaultWidth, &defaultHeight);
-
-    GUID defaultSubtype{};
-    defaultMediaType->GetGUID(MF_MT_SUBTYPE, &defaultSubtype);
-
-    LogToFile(std::string("Current  format: ") +
-              toMediaTypeString(defaultSubtype) +
-              std::string(", width= ") +
-              std::to_string(defaultWidth) +
-              std::string(", height= ") +
-              std::to_string(defaultHeight));
-
-    defaultAspectRatio = (double)defaultWidth / (double)defaultHeight;
+    bool is16by9RatioAvailable = false;
 
     UINT64 maxResolution = 0;
     for (DWORD tyIdx = 0;; ++tyIdx)
@@ -194,21 +175,21 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
 
         LogToFile(std::string("Available format: ") +
                   toMediaTypeString(subtype) +
-                  std::string(", width= ") +
+                  std::string(", width=") +
                   std::to_string(width) +
-                  std::string(", height= ") +
+                  std::string(", height=") +
                   std::to_string(height) +
-                  std::string(", aspect ratio matching default = ") +
-                  std::to_string(areSame(aspectRatio, defaultAspectRatio)));
+                  std::string(", aspect ratio=") +
+                  std::to_string(aspectRatio));
 
         if (subtype != MFVideoFormat_RGB24)
         {
             continue;
         }
 
-        if (!areSame(aspectRatio, defaultAspectRatio))
+        if (!areSame(aspectRatio, (double) 16 / (double) 9))
         {
-            continue;
+            is16by9RatioAvailable = true;
         }
 
         constexpr float minimalAcceptableFramerate = 15.f;
@@ -229,6 +210,20 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         {
             break;
         }
+    }
+
+    
+    if (is16by9RatioAvailable)
+    {
+        // Remove all types with non 16 by 9 ratio
+        supportedMediaTypes.erase(std::remove_if(begin(supportedMediaTypes), end(supportedMediaTypes), [maxResolution](ComPtr<IMFMediaType>& ptr) {
+                                      UINT32 width = 0, height = 0;
+                                      MFGetAttributeSize(ptr.Get(), MF_MT_FRAME_SIZE, &width, &height);
+
+                                      double ratio = (double)width / (double)height;
+                                      return !areSame(ratio, (double) 16 / (double) 9);
+                                  }),
+                                  end(supportedMediaTypes));
     }
 
     // Remove all types with non-optimal resolution
