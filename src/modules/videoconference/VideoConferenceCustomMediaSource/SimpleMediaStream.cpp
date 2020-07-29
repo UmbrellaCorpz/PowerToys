@@ -186,7 +186,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
             continue;
         }
 
-        if (!areSame(aspectRatio, (double) 16 / (double) 9))
+        if (areSame(aspectRatio, (double) 16 / (double) 9))
         {
             is16by9RatioAvailable = true;
         }
