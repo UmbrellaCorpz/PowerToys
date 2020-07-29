@@ -228,7 +228,6 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
         UINT32 height = 0;
         
         MFGetAttributeSize(type.Get(), MF_MT_FRAME_SIZE, &width, &height);
-        LogToFile(std::to_string(width) + " " + std::to_string(height) + "=" + std::to_string(width * height));
         const UINT64 curResolutionMult = static_cast<UINT64>(width) * height;
         if (curResolutionMult >= maxResolution)
         {
