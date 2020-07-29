@@ -154,7 +154,6 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
 
     bool is16by9RatioAvailable = false;
 
-    UINT64 maxResolution = 0;
     for (DWORD tyIdx = 0;; ++tyIdx)
     {
         IMFMediaType* nextType = nullptr;
@@ -199,12 +198,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
             continue;
         }
 
-        const UINT64 curResolutionMult = static_cast<UINT64>(width) * height;
-        if (curResolutionMult >= maxResolution)
-        {
-            supportedMediaTypes.emplace_back(nextType);
-            maxResolution = curResolutionMult;
-        }
+        supportedMediaTypes.emplace_back(nextType);
 
         if (hr == MF_E_NO_MORE_TYPES || FAILED(hr))
         {
@@ -216,7 +210,7 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
     if (is16by9RatioAvailable)
     {
         // Remove all types with non 16 by 9 ratio
-        supportedMediaTypes.erase(std::remove_if(begin(supportedMediaTypes), end(supportedMediaTypes), [maxResolution](ComPtr<IMFMediaType>& ptr) {
+        supportedMediaTypes.erase(std::remove_if(begin(supportedMediaTypes), end(supportedMediaTypes), [](ComPtr<IMFMediaType>& ptr) {
                                       UINT32 width = 0, height = 0;
                                       MFGetAttributeSize(ptr.Get(), MF_MT_FRAME_SIZE, &width, &height);
 
@@ -224,6 +218,22 @@ ComPtr<IMFMediaType> SelectBestMediaType(IMFSourceReader* reader)
                                       return !areSame(ratio, (double) 16 / (double) 9);
                                   }),
                                   end(supportedMediaTypes));
+    }
+
+    UINT64 maxResolution = 0;
+
+    for (auto& type : supportedMediaTypes)
+    {
+        UINT32 width = 0;
+        UINT32 height = 0;
+        
+        MFGetAttributeSize(type.Get(), MF_MT_FRAME_SIZE, &width, &height);
+        LogToFile(std::to_string(width) + " " + std::to_string(height) + "=" + std::to_string(width * height));
+        const UINT64 curResolutionMult = static_cast<UINT64>(width) * height;
+        if (curResolutionMult >= maxResolution)
+        {
+            maxResolution = curResolutionMult;
+        }
     }
 
     // Remove all types with non-optimal resolution
